@@ -1,0 +1,150 @@
+Scrapy
+
+1 创建一个scrapy 项目
+2 定义提取结构化数据Item
+3 编写网络爬虫 Spider 并提取结构化数据
+4 编写 Item Pipelines 来存储数据
+
+案例1 ：爬取天涯网站所有邮件
+
+思路：
+1 定义结构化数据字段 Item，用来保存爬取到的数据
+2 创建一个scrapy.Item 类，并定义一个scrapy.Field 类属性，来定义Item
+  类似ORM 的映射关系
+3 创建一个mailItrem 类和构建Item 模型
+
+
+
+1)创建爬虫项目：
+    scrapy startproject mySpider
+
+import scrapy
+ class MailItem(scrapy.Item):
+    email = scrapy.Field()
+    url = scrapy.Field()
+
+2) 爬取数据
+    scrapy genspider tianya 'tianya.com'
+
+tianya.py
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+#  Python2.X中，需指定默认编码格式
+
+import scrapy
+class MySpider(scrapy.Spider):
+    name = 'tianya'
+    allowed_domains = ['tianya.com']
+    start_url = ('http://www.tianya.com',)
+
+def parse(self, response):
+    filename = 'mail.html'
+    open(filename, 'w').write(response.body)
+3) 运行调试
+scrapy crawl tianya
+
+
+4) 正则提取数据
+
+5）保存数据
+scrapy crawl tianya -o mail.json
+scrapy crawl tianya -o mail.csv
+scrapy crawl tianya -o mail.xml
+
+总结： scrapy Shell 的交互终端调试，推荐使用 Ipython 终端
+scrapy shell 'http://www.baidu.com'
+输入 response.body
+    response.headers
+    response.xpath()  .css
+
+selectors 选择器，四个常用方法
+xpath()  extract()  css() re() 返回值都是列表
+
+案例2 Xpath 使用
+腾讯社招
+
+scrapy shell 'http://hr.tencent.com/?&'
+数据提取
+
+response.xpath('//title')
+# 使用 extract()方法返回 Unicode 字符串列表
+response.xpath('//title').extract()
+print response.xpath('//tilte').exraact()[0]
+
+# 返回 xpath 选择器列表
+response.xpath('//title/text()')
+response.xpath('//title/text()')[0].exraact()
+
+response.xpath('//*[class="even"]')
+职位名称
+print site[0].xpath('./td[1]/a/text()').exraact()[0]
+print site[0].xpath('./td[2]/a/@href').exraact()[0]
+
+
+Item Pipelines 的典型应用
+1 验证爬取的数据（检查item 包含哪些字段，比如name）
+2 数据保存到文件或者数据库中
+
+item pipeline组件是一个独立的类，其中process_item()方法必须实现
+
+class MYpipeline(object):
+    def __init__(self):
+        dosomething
+    
+    def process_item(self, item, spider):
+        return item
+    
+    def open_spider(self, spider):
+        pass
+
+    def close_spider(self, spider):
+        pass
+    
+item 写入JSON 文件，每行包含一个序列化为‘JSON’格式的item
+
+import json
+
+class MYpipeline(object):
+    def __init__(self):
+        self.file = open('mail.json', 'wb')
+
+    def process_item(self, item, spider):
+        content = json.dumps(dict(item), ensure_ascii=False) + '\n'
+        self.file.write(content)
+        return item
+
+    def close_spider(self, spider):
+        self.file.close()
+
+启用 Item pipeline 组件，需要添加配置文件
+ITEM_PIPELINES = {
+    "mySpider.pipelines.mySpiderPipeline": 300  # 0-1000 值越大优先级越低
+}
+
+重新启动爬虫
+scrapy crawl tianya
+
+Spider 知识
+爬虫的基类  scrapy.spider
+主要函数：
+__init__()
+satrt_requests(),调用make_requests_from url()
+parse(), 解析response,返回item 或 requests 需要指定回调函数
+
+log(self, message[, level, componnet])
+使用 scrapy.log.msg()方法记录log message
+
+
+
+
+
+
+
+
+
+
+
+
+
+
